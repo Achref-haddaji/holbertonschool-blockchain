@@ -8,9 +8,10 @@
  * @pub: The public key to be converted
  *
  * Return: A pointer to the created EC_POINT structure upon success,
- * or NULL upon failure
+ *         or NULL upon failure
  */
-static EC_POINT *ec_create_point(EC_GROUP *group, uint8_t const pub[EC_PUB_LEN])
+static EC_POINT *ec_create_point(EC_GROUP *group, uint8_t const pub
+[EC_PUB_LEN])
 {
 	EC_POINT *point = NULL;
 
@@ -34,7 +35,7 @@ static EC_POINT *ec_create_point(EC_GROUP *group, uint8_t const pub[EC_PUB_LEN])
  * @pub: The public key to be set
  *
  * Return: Pointer to the created EC_KEY structure upon success,
- * or NULL upon failure
+ *         or NULL upon failure
  */
 static EC_KEY *ec_create_key(EC_GROUP *group, EC_POINT *pub)
 {
@@ -65,7 +66,7 @@ static EC_KEY *ec_create_key(EC_GROUP *group, EC_POINT *pub)
  * @pub: The public key to be converted
  *
  * Return: Pointer to the created EC_KEY structure upon success,
- * or NULL upon failure
+ *         or NULL upon failure
  */
 EC_KEY *ec_from_pub(uint8_t const pub[EC_PUB_LEN])
 {
@@ -90,8 +91,8 @@ EC_KEY *ec_from_pub(uint8_t const pub[EC_PUB_LEN])
 	point = ec_create_point(group, pub);
 	if (!point)
 	{
-		EC_KEY_free(key);
 		EC_GROUP_free(group);
+		EC_KEY_free(key);
 		return (NULL);
 	}
 
