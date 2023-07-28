@@ -1,65 +1,50 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <sys/stat.h>
 #include "hblk_crypto.h"
 
-int make_directory(const char *path) {
-    struct stat st = {0};
-    if (stat(path, &st) == -1) {
-        if (mkdir(path, 0700) == -1) {
-            return 0; // Directory creation failed
-        }
-    }
-    return 1; // Directory exists or created successfully
-}
+#define privetkey_size (strlen(folder) + strlen(PRI_FILENAME) + 2)
+#define pubkey_size (strlen(folder) + strlen(PRI_FILENAME) + 2)
 
 /**
- * ec_load - Loads an EC key pair from disk
- *
- * @folder: Path to the folder from which to load the keys
- *
- * Return: A pointer to the loaded EC key pair, or NULL on failure
+ *ec_save - load a public/privet pair key from  file
+ *@folder:path to the folder that will contain the files
+ *Return: if successful  return EC_KEY otherwise return NULL
  */
 EC_KEY *ec_load(char const *folder)
 {
-    if (!folder)
-        return NULL;
+	EC_KEY *key = NULL;
+	FILE *pubKey, *privKey;
+	char *prikeyFile, *pubkeyFile;
 
-    char key_path[256];
-    char pub_path[256];
-    snprintf(key_path, sizeof(key_path), "%s/%s", folder, "key.pem");
-    snprintf(pub_path, sizeof(pub_path), "%s/%s", folder, "key_pub.pem");
+	prikeyFile = malloc(sizeof(privetkey_size));
+	pubkeyFile = malloc(sizeof(pubkey_size));
+	if (!prikeyFile || !pubkeyFile)
+		return (0);
 
-    FILE *key_file = fopen(key_path, "r");
-    if (!key_file)
-        return NULL;
+	sprintf(prikeyFile, "%s/" PRI_FILENAME, folder);
+	sprintf(pubkeyFile, "%s/" PUB_FILENAME, folder);
+	pubKey = fopen(pubkeyFile, "r");
+	privKey = fopen(prikeyFile, "r");
+	if (!pubKey || !privKey)
+	{
+		fprintf(stderr, "fopen() failed\n");
+		return (NULL);
+	}
+	if (!PEM_read_EC_PUBKEY(pubKey, &key, NULL, NULL))
+	{
+		EC_KEY_free(key);
+		fclose(pubKey);
+		fprintf(stderr, "PEM_read_EC_PUBKEY() failed\n");
+		return (NULL);
+	}
+	fclose(pubKey);
 
-    FILE *pub_file = fopen(pub_path, "r");
-    if (!pub_file)
-    {
-        fclose(key_file);
-        return NULL;
-    }
-
-    EC_KEY *key = PEM_read_ECPrivateKey(key_file, NULL, NULL, NULL);
-    if (!key)
-    {
-        fclose(key_file);
-        fclose(pub_file);
-        return NULL;
-    }
-
-    if (PEM_read_EC_PUBKEY(pub_file, &key, NULL, NULL) == NULL)
-    {
-        EC_KEY_free(key);
-        fclose(key_file);
-        fclose(pub_file);
-        return NULL;
-    }
-
-    fclose(key_file);
-    fclose(pub_file);
-
-    return key;
+	if (!PEM_read_ECPrivateKey(privKey, &key, NULL, NULL))
+	{
+		fprintf(stderr, "PEM_read_ECPrivateKey() failed\n");
+		EC_KEY_free(key);
+		fclose(privKey);
+	}
+	fclose(privKey);
+	free(prikeyFile);
+	free(pubkeyFile);
+	return (key);
 }
