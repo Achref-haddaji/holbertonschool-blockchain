@@ -14,29 +14,31 @@
  *
  * Return: Pointer to the allocated Block, or NULL on failure
  */
-block_t *block_create(block_t const *prev, int8_t const *data, uint32_t data_len)
+block_t *block_create(
+	block_t const *prev, int8_t const *data, uint32_t data_len)
 {
-    block_t *block = malloc(sizeof(block_t));
-    if (block == NULL)
-        return (NULL);
+	block_t *block = malloc(sizeof(block_t));
 
-    block->info.index = (prev != NULL) ? prev->info.index + 1 : 0;
-    block->info.difficulty = 0;
-    block->info.timestamp = time(NULL);
-    block->info.nonce = 0;
+	if (block == NULL)
+		return (NULL);
 
-    if (prev != NULL)
-        memcpy(block->info.prev_hash, prev->hash, SHA256_DIGEST_LENGTH);
-    else
-        memset(block->info.prev_hash, 0, SHA256_DIGEST_LENGTH);
+	block->info.index = (prev != NULL) ? prev->info.index + 1 : 0;
+	block->info.difficulty = 0;
+	block->info.timestamp = time(NULL);
+	block->info.nonce = 0;
 
-    memset(block->hash, 0, SHA256_DIGEST_LENGTH);
+	if (prev != NULL)
+		memcpy(block->info.prev_hash, prev->hash, SHA256_DIGEST_LENGTH);
+	else
+		memset(block->info.prev_hash, 0, SHA256_DIGEST_LENGTH);
 
-    if (data_len > BLOCKCHAIN_DATA_MAX)
-        data_len = BLOCKCHAIN_DATA_MAX;
+	memset(block->hash, 0, SHA256_DIGEST_LENGTH);
 
-    memcpy(block->data.buffer, data, data_len);
-    block->data.len = data_len;
+	if (data_len > BLOCKCHAIN_DATA_MAX)
+		data_len = BLOCKCHAIN_DATA_MAX;
 
-    return (block);
+	memcpy(block->data.buffer, data, data_len);
+	block->data.len = data_len;
+
+	return (block);
 }
