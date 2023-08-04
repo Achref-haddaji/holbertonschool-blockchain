@@ -1,139 +1,49 @@
-#ifndef BLOCK_CHAIN_H
-#define BLOCK_CHAIN_H
-
-#include "../../crypto/hblk_crypto.h"
-#include "provided/endianness.h"
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <llist.h>
-#include <time.h>
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
-
-#define HBLK_MAGIC "HBLK"
-#define HBLK_VERSION "0.1"
-#define SET_MAX_LEN(x, y) ((x > y) ? y : x)
+#include "blockchain.h"
 
 /**
- * struct block_info_s - Block info structure
- *
- * @index:      Index of the Block in the Blockchain
- * @difficulty: Difficulty of proof of work (hash leading zero bits)
- * @timestamp:  Time the Block was created at (UNIX timestamp)
- * @nonce:      Salt value used to alter the Block hash
- * @prev_hash:  Hash of the previous Block in the Blockchain
- */
-typedef struct block_info_s
+* init_genesis_block - Creates a genesis block
+* @difficulty: Difficulty of the genesis block
+*  Return: Pointer to the genesis block
+*/
+block_t *init_genesis_block(uint8_t difficulty)
 {
-	/*
-	 * The order of the elements in this structure should remain the same.
-	 * It was designed so every element of this structure is aligned and
-	 * doesn't require padding from the compiler.
-	 * Therefore, it is possible to use the structure as an array of char,
-	 * on any architecture.
-	 */
-	uint32_t index;
-	uint32_t difficulty;
-	uint64_t timestamp;
-	uint64_t nonce;
-	uint8_t prev_hash[SHA256_DIGEST_LENGTH];
-} block_info_t;
+	block_t *block;
 
-#define BLOCKCHAIN_DATA_MAX 1024
-
+	block = calloc(1, sizeof(*block));
+	if (!block)
+		return (NULL);
+	difficulty = difficulty;
+	block->info.index = 0;
+	block->info.difficulty = 0;
+	block->info.timestamp = 1537578000;
+	block->info.nonce = 0;
+	memset(block->info.prev_hash, 0, SHA256_DIGEST_LENGTH);
+	memcpy(block->data.buffer, "Holberton School", strlen("Holberton School"));
+	block->data.len = strlen("Holberton School");
+	memcpy(block->hash,
+		"\xc5\x2c\x26\xc8\xb5\x46\x16\x39\x63\x5d\x8e\xdf\x2a\x97\xd4\x8d\x0c\x8e\x00\x09\xc8\x17\xf2\xb1\xd3\xd7\xff\x2f\x04\x51\x58\x03",
+			SHA256_DIGEST_LENGTH);
+	return (block);
+}
 /**
- * struct block_data_s - Block data
- *
- * @buffer: Data buffer
- * @len:    Data size (in bytes)
- */
-typedef struct block_data_s
+ * blockchain_create - Creates a blockchain
+ * Return: Pointer to the blockchain
+ **/
+blockchain_t *blockchain_create(void)
 {
-	/*
-	 * @buffer must stay first, so we can directly use the structure as
-	 * an array of char
-	 */
-	int8_t buffer[BLOCKCHAIN_DATA_MAX];
-	uint32_t len;
-} block_data_t;
+	blockchain_t *blockchain;
+	block_t *genesis_block;
 
-/**
- * struct block_s - Block structure
- *
- * @info: Block info
- * @data: Block data
- * @hash: 256-bit digest of the Block, to ensure authenticity
- */
-typedef struct block_s
-{
-	block_info_t info; /* This must stay first */
-	block_data_t data; /* This must stay second */
-	uint8_t hash[SHA256_DIGEST_LENGTH];
-} block_t;
+	blockchain = calloc(1, sizeof(*blockchain));
+	if (!blockchain)
+		return (NULL);
+	genesis_block = init_genesis_block(0);
+	if (!genesis_block)
+		return (NULL);
 
-#define GEN_BLOCK { \
-		{ /* info */	    \
-			0 /* index */,				\
-				0, /* difficulty */		\
-				1537578000, /* timestamp */	\
-				0, /* nonce */			\
-				{0} /* prev_hash */		\
-		},						\
-		{ /* data */					\
-			"Holberton School", /* buffer */	\
-				16 /* len */			\
-				},				\
-		"\xc5\x2c\x26\xc8\xb5\x46\x16\x39\x63\x5d\x8e\xdf\x2a\x97\xd4\x8d" \
-		"\x0c\x8e\x00\x09\xc8\x17\xf2\xb1\xd3\xd7\xff\x2f\x04\x51\x58\x03" \
-		}
-
-/**
- * struct blockchain_s - Blockchain structure
- *
- * @chain: Linked list of pointers to block_t
- */
-typedef struct blockchain_s
-{
-	llist_t *chain;
-} blockchain_t;
-
-
-/**
- * struct hblk_file_s - HBLK file format
- *
- * @hblk_magic: magic bytes for HBLK file format
- * @hblk_version: Blockchain version
- * @hblk_endian: endianness, 1 is Little endian, 2 is Big endian
-* @hblk_blocks: number of blocks in a blockchain
- */
-typedef struct hblk_file_s
-{
-	uint8_t hblk_magic[4];
-	uint8_t hblk_version[3];
-	uint8_t hblk_endian;
-	int32_t hblk_blocks;
-} hblk_file_t;
-
-#define UNUSED(x) (void)(x)
-
-blockchain_t *blockchain_create(void);
-block_t *block_create(block_t const *prev,
-					  int8_t const *data, uint32_t data_len);
-void block_destroy(block_t *block);
-void blockchain_destroy(blockchain_t *blockchain);
-uint8_t *block_hash(block_t const *block,
-					uint8_t hash_buf[SHA256_DIGEST_LENGTH]);
-int blockchain_serialize(blockchain_t const *blockchain, char const *path);
-blockchain_t *blockchain_deserialize(char const *path);
-llist_t *deserialize_blocks(int fd, uint32_t size, uint8_t endianness);
-int block_is_valid(block_t const *block, block_t const *prev_block);
-
-uint8_t _get_endianness(void);
-
-
-#endif
+	blockchain->chain = llist_create(MT_SUPPORT_TRUE);
+	if (!blockchain->chain)
+		return (NULL);
+	llist_add_node(blockchain->chain, genesis_block, ADD_NODE_FRONT);
+	return (blockchain);
+}
